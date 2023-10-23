@@ -25,7 +25,9 @@ echo -e '\n. "$HOME/smash/.zshrc"' >> "$HOME/.zshrc"
 
 Alternatively, test script may be called:
 
-`./test/test.sh`
+```sh
+./test/test.sh
+```
 
 The script expands file `test/bar.sh`, which has the following content:
 
