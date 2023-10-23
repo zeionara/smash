@@ -8,18 +8,18 @@ add_suffix () {
 }
 
 smashd () {
-    _path="$1"
-    _pos=${2:-0}
-    _i=0
+    local _path="$1"
+    local _pos=${2:-0}
+    local _i=0
 
-    echo $_pos $_i
+    # echo $_pos $_i
 
-    _script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+    local _script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
     if [ -z "$3" ]; then
-        _output="$(add_suffix $_path 'expanded')"
+        local _output="$(add_suffix $_path 'expanded')"
     else
-        _output="$3"
+        local _output="$3"
     fi
 
     if [[ -f "$_output" ]] && [[ -z "$3" ]]; then
@@ -28,17 +28,20 @@ smashd () {
 
     while read line; do
         if [ $_i -ge $_pos ]; then
-            _pathh="$_script_dir/$line"
+            local _pathh="$_script_dir/$line"
 
             if [[ ! -z $line ]] && [[ -d "$_pathh" ]]; then
-                for _file in $_pathh/*.sh; do
-                    _file=${_file##*/}
-                    _suffix="$line=${_file%.*}"
+                local _line="$line"
 
-                    _new_file="$(add_suffix $_output $_suffix)"
+                for _file in $_pathh/*.sh; do
+                    local _file=${_file##*/}
+                    local _name=${_file%.*}
+                    local _suffix="$_line=$_name"
+
+                    local _new_file="$(add_suffix $_output $_suffix)"
 
                     head "$_output" -n $_i > $_new_file
-                    echo "$_file" >> $_new_file
+                    echo "$_line/$_name" >> $_new_file
 
                     smashd $_path $((_i + 1)) $_new_file
 
@@ -48,7 +51,7 @@ smashd () {
                 return
             else
                 echo $line >> $_output
-                echo $line
+                # echo $line
             fi
         fi
 
@@ -103,7 +106,10 @@ smash () (
 
         # run > "$_filename-updated.$_extension"
 
-        run > "$(add_suffix $_path 'expanded')"
+        _result="$(add_suffix $_path 'expanded')"
+        run > "$_result"
+
+        echo $_result
     else
         run
     fi
