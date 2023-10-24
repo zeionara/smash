@@ -7,6 +7,86 @@ add_suffix () {
     echo "$_filename-$2.$_extension"
 }
 
+_smash_drop_duplicates () {
+    args="$1"
+    unique_args=''
+
+    read -A args_array <<< "$args"
+
+    for arg in ${args_array[@]}; do
+        # echo "$(echo $unique_args | grep "'"'"$arg"'"'")"
+        # if [ -z "$(echo $unique_args | grep "'"'"arg1"'"'")" ]; then
+        escaped_arg="$(echo $arg | sed 's/-/\\-/g')"
+        # matches="$(echo $unique_args | grep "'"'"$escaped_arg"'"'")"
+        # echo $matches
+        matches=$(echo $unique_args | grep "$escaped_arg")
+        # echo $unique_args '||' $arg '>>' $matches
+        if [ -z $matches ]; then
+            # echo -- $arg
+            if [ -z $unique_args ]; then
+                unique_args="$arg"
+            else
+                unique_args="$unique_args $arg"
+            fi
+        fi
+        # unique_args="$unique_args $arg"
+    done
+
+    echo $unique_args
+}
+
+smashc () {
+    # mine=$(echo 'foo' | sed 's/foo/bar/')
+    # echo $mine
+
+    local _path="$1"
+    local prefix="$2"
+
+    local args=''
+
+    if [[ -z $_path ]] || [[ ! -f $_path ]]; then
+        echo File '"'$_path'"' does not exist or the path is empty
+        return
+    fi
+
+    if [ -z $prefix ]; then
+        echo Prefix must be non-empty
+        return
+    fi
+
+    i=0
+    first_prefix_match_i=''
+
+    while read line; do
+        if [[ $line == $prefix* ]]; then
+            if [ -z $first_prefix_match_i ]; then
+                first_prefix_match_i=$i
+            fi
+
+            # if [ -z $accumulator ]; then
+            #     accumulator=$line
+            # else
+            #     args=$(echo $line | sed -e "s/$prefix *//")
+            #     accumulator="$accumulator $args"
+            # fi
+
+            new_args=$(echo $line | sed -e "s/$prefix *//")
+
+            if [ -z $args ]; then
+                args=$new_args
+            else
+                args="$args $new_args"
+            fi
+        fi
+
+        i=$((i + 1))
+    done < "$_path"
+
+    args=$(_smash_drop_duplicates "$args")
+
+    echo $first_prefix_match_i $args
+}
+
 smashd () {
     local _path="$1"
     local _pos=${2:-0}
