@@ -9,8 +9,15 @@
 For example, to expand references to `shell` scripts in the same folder execute (for more details on this example see [tests](test)):
 
 ```sh
-for file in $(smashd bar.sh); do echo $file; cat $(smash $file); done
+smasha bar.sh 'sudo apt-get install'
 ```
+
+There are 4 separate functions supported:
+
+1. smash - expand references to the scripts in the same folder (substitute content from the scripts instead of their name mentions);
+1. smashd - expand references to files located in folders, mentioned in the script (substitude folder names with paths to specific files);
+1. smashc - combine commands with given prefix by merging the lists of arguments and removing duplicates;
+1. smasha - execute all operations listed above for the script located at given path.
 
 ## Installation
 
@@ -66,12 +73,15 @@ test
 Into the following 4 files:
 
 ```sh
-bar-expanded-qux=corge-garply=fred.sh
+bar-qux=corge-garply=fred.sh
+
 #!/bin/bashh
 
 echo 'foo'
 
 echo 'i am corge'
+
+sudo apt-get install foo bar baz qux corge garply
 
 echo 'bax'
 
@@ -79,12 +89,16 @@ echo 'i am fred'
 
 echo 'mono'
 
-bar-expanded-qux=corge-garply=waldo.sh
+
+bar-qux=corge-garply=waldo.sh
+
 #!/bin/bashh
 
 echo 'foo'
 
 echo 'i am corge'
+
+sudo apt-get install foo bar baz qux
 
 echo 'bax'
 
@@ -92,7 +106,9 @@ echo 'i am waldo'
 
 echo 'mono'
 
-bar-expanded-qux=quux-garply=fred.sh
+
+bar-qux=quux-garply=fred.sh
+
 #!/bin/bashh
 
 echo 'foo'
@@ -103,9 +119,13 @@ echo 'bax'
 
 echo 'i am fred'
 
+sudo apt-get install baz qux corge garply
+
 echo 'mono'
 
-bar-expanded-qux=quux-garply=waldo.sh
+
+bar-qux=quux-garply=waldo.sh
+
 #!/bin/bashh
 
 echo 'foo'

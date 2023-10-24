@@ -1,6 +1,6 @@
 #!/bin/bash
 
-add_suffix () {
+_smash_add_suffix () {
     _extension="$(echo $1 | rev | cut -d '.' -f1 | rev)"
     _filename="$(echo $1 | rev | cut -d '.' -f2- | rev)"
 
@@ -14,35 +14,75 @@ _smash_drop_duplicates () {
     read -A args_array <<< "$args"
 
     for arg in ${args_array[@]}; do
-        # echo "$(echo $unique_args | grep "'"'"$arg"'"'")"
-        # if [ -z "$(echo $unique_args | grep "'"'"arg1"'"'")" ]; then
-        escaped_arg="$(echo $arg | sed 's/-/\\-/g')"
-        # matches="$(echo $unique_args | grep "'"'"$escaped_arg"'"'")"
-        # echo $matches
+        escaped_arg="$(echo $arg | sed -E 's/^-/\\-/g')"
         matches=$(echo $unique_args | grep "$escaped_arg")
-        # echo $unique_args '||' $arg '>>' $matches
+
         if [ -z $matches ]; then
-            # echo -- $arg
             if [ -z $unique_args ]; then
                 unique_args="$arg"
             else
                 unique_args="$unique_args $arg"
             fi
         fi
-        # unique_args="$unique_args $arg"
     done
 
     echo $unique_args
 }
 
-smashc () {
-    # mine=$(echo 'foo' | sed 's/foo/bar/')
-    # echo $mine
+smasha () {
+    local _path="$1"
 
+    if [[ -z $_path ]] || [[ ! -f $_path ]]; then
+        echo File '"'$_path'"' does not exist or the path is empty
+        return
+    fi
+
+    names=''
+
+    for file in $(smashd $_path); do
+        smashed=$(smash $file)
+        # smashced=$(smashc $smashed 'sudo apt-get install')
+
+        for arg in ${@:2}; do
+            smashced=$(smashc $smashed "$arg")
+            mv $smashced $smashed
+        done
+
+        # smashaed=$(echo $smashced | sed -E 's/\-(truncated|expanded)//g')
+        smashaed=$(echo $smashed | sed 's/\-expanded//g')
+        smashaed="_$smashaed"
+
+        mv $smashed $smashaed
+
+        if [ -z $names ]; then
+            names="$smashaed"
+        else
+            names="$names $smashaed"
+        fi
+    done
+
+    eval "rm $(_smash_add_suffix $_path '*')" 2> /dev/null
+
+    read -A names_array <<< $names
+
+    for name in ${names_array[@]}; do
+        _name="${name:1}"
+        mv $name $_name
+
+        echo $_name
+        echo
+        cat $_name
+        echo
+        echo
+    done
+}
+
+smashc () {
     local _path="$1"
     local prefix="$2"
 
     local args=''
+    local output=$(_smash_add_suffix "$1" truncated)
 
     if [[ -z $_path ]] || [[ ! -f $_path ]]; then
         echo File '"'$_path'"' does not exist or the path is empty
@@ -54,20 +94,17 @@ smashc () {
         return
     fi
 
-    i=0
-    first_prefix_match_i=''
+    if [ -f "$output" ]; then
+        rm "$output"
+    fi
+
+    # i=0
+    # first_prefix_match_i=''
 
     while read line; do
         if [[ $line == $prefix* ]]; then
-            if [ -z $first_prefix_match_i ]; then
-                first_prefix_match_i=$i
-            fi
-
-            # if [ -z $accumulator ]; then
-            #     accumulator=$line
-            # else
-            #     args=$(echo $line | sed -e "s/$prefix *//")
-            #     accumulator="$accumulator $args"
+            # if [ -z $first_prefix_match_i ]; then
+            #     first_prefix_match_i=$i
             # fi
 
             new_args=$(echo $line | sed -e "s/$prefix *//")
@@ -79,12 +116,35 @@ smashc () {
             fi
         fi
 
-        i=$((i + 1))
+        # i=$((i + 1))
     done < "$_path"
 
     args=$(_smash_drop_duplicates "$args")
 
-    echo $first_prefix_match_i $args
+    # echo $first_prefix_match_i $args
+
+    # i = 0
+    first_prefix_match=''
+    previous_line=''
+
+    while read line; do
+        if [[ $line == $prefix* ]]; then
+            if [ -z $first_prefix_match ]; then
+                first_prefix_match=1
+                echo $prefix $args >> "$output"
+            else
+                continue
+            fi
+        else
+            if [[ ! -z $line ]] || [[ ! -z $previous_line ]]; then
+                echo $line >> "$output"
+            fi
+        fi
+
+        previous_line="$line"
+    done < "$_path"
+
+    echo $output
 }
 
 smashd () {
@@ -97,7 +157,7 @@ smashd () {
     local _script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
     if [ -z "$3" ]; then
-        local _output="$(add_suffix $_path 'expanded')"
+        local _output="$(_smash_add_suffix $_path 'expanded')"
     else
         local _output="$3"
     fi
@@ -118,7 +178,7 @@ smashd () {
                     local _name=${_file%.*}
                     local _suffix="$_line=$_name"
 
-                    local _new_file="$(add_suffix $_output $_suffix)"
+                    local _new_file="$(_smash_add_suffix $_output $_suffix)"
 
                     head "$_output" -n $_i > $_new_file
                     echo "$_line/$_name" >> $_new_file
@@ -139,7 +199,7 @@ smashd () {
     done < $_path
 
     if [ $_i -eq $(cat $_path | wc -l) ]; then
-        echo $_output
+        echo "$_output"
     fi
 }
 
@@ -186,7 +246,7 @@ smash () (
 
         # run > "$_filename-updated.$_extension"
 
-        _result="$(add_suffix $_path 'expanded')"
+        _result="$(_smash_add_suffix $_path 'expanded')"
         run > "$_result"
 
         echo $_result
