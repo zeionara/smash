@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/zsh
 
 _smash_add_suffix () {
     _extension="$(echo $1 | rev | cut -d '.' -f1 | rev)"
