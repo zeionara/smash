@@ -88,7 +88,7 @@ smashp () {
 
     local folder=$(echo $_path | rev | cut -d '/' -f2- | rev)
 
-    if [[ $folder == */* ]]; then
+    if [[ $_path == */* ]]; then
         folder="$folder/"
     else
         folder=""
@@ -145,7 +145,18 @@ smasha () {
 
         # smashaed=$(echo $smashced | sed -E 's/\-(truncated|expanded)//g')
         smashaed=$(echo $smashed | sed 's/\-expanded//g')
-        smashaed="_$smashaed"
+
+        folder=$(echo $smashaed | rev | cut -d '/' -f2- | rev)
+
+        if [[ $smashaed == */* ]]; then
+            folder="$folder/"
+        else
+            folder=''
+        fi
+
+        filename=$(echo $smashaed | rev | cut -d '/' -f1 | rev)
+
+        smashaed="${folder}_${filename}"
 
         mv $smashed $smashaed
 
@@ -161,7 +172,8 @@ smasha () {
     read -A names_array <<< $names
 
     for name in ${names_array[@]}; do
-        _name="${name:1}" # discard the first character which should be underscore
+        #_name="${name:1}" # discard the first character which should be underscore
+        _name="$(echo $name | sed 's#/_#/#')"
         mv $name $_name
 
         smashp "$_name"
@@ -249,9 +261,15 @@ smashd () {
     local _pos=${2:-0}
     local _i=0
 
+    local _dir=$(echo $_path | rev | cut -d '/' -f2- | rev)
+
     # echo $_pos $_i
 
-    local _script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+    if [ -z $_dir ]; then
+        local _script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+    else
+        local _script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/$_dir
+    fi
 
     if [ -z "$3" ]; then
         local _output="$(_smash_add_suffix $_path 'expanded')"
@@ -280,7 +298,7 @@ smashd () {
                     head "$_output" -n $_i > $_new_file
                     echo "$_line/$_name" >> $_new_file
 
-                    smashd $_path $((_i + 1)) $_new_file
+                    smashd $_path $((_i + 1)) $_new_file $_dir
 
                     # echo $_new_file
                 done
@@ -303,6 +321,8 @@ smashd () {
 smash () (
     _path="$1"
     _nested="$2"
+
+    local _dir=$(echo $_path | rev | cut -d '/' -f2- | rev)
     
     if [ -z $_nested ]; then
         _is_first_line_after_header=''
@@ -310,7 +330,11 @@ smash () (
         _is_first_line_after_header='1'
     fi
 
-    _script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+    if [ -z $_dir ]; then
+        _script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+    else
+        _script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/$_dir
+    fi
 
     if [ ! -f "$_path" ]; then
         echo File $_path does not exist
