@@ -29,6 +29,101 @@ _smash_drop_duplicates () {
     echo $unique_args
 }
 
+_smash_permute () {
+    local n_items=${#@}
+
+    if [ $n_items -eq 1 ]; then
+        echo "$@"
+        return
+    fi
+
+    local i=1
+    local result=''
+
+    for item in $@; do
+        # echo '--' $item
+
+        # echo 'vv'
+        local args1="${@:1:$((i - 1))}"
+        local args2="${@:$((i + 1)):$((n_items - i))}"
+        local args=''
+
+        # echo $args1
+        # echo $args2
+
+        if [[ ! -z $args1 ]] && [[ ! -z $args2 ]]; then
+            args="$args1 $args2"
+        else
+            args="$args1$args2"
+        fi
+        # echo "'$args'"
+        # sleep 1
+        if [ ! -z $args ]; then
+            # echo ">> $args"
+
+            local _result=$(eval "_smash_permute $args")
+            read -A _result_array <<< "$_result"
+
+            for _item in ${_result_array[@]}; do
+                if [ ! -z $result ]; then
+                    result="$result $item|$_item"
+                else
+                    result="$item|$_item"
+                fi
+            done
+
+            # echo '!!' $_result '!!'
+            # echo "<< $args"
+        fi
+        # echo '^^'
+
+        i=$((i + 1))
+    done
+
+    echo $result
+}
+
+smashp () {
+    local _path="$1"
+
+    local folder=$(echo $_path | rev | cut -d '/' -f2- | rev)
+
+    if [[ $folder == */* ]]; then
+        folder="$folder/"
+    else
+        folder=""
+    fi
+
+    local file=$(echo $_path | rev | cut -d '/' -f1 | rev)
+    local extension=$(echo $file | rev | cut -d '.' -f1 | rev)
+    local file=$(echo $file | rev | cut -d '.' -f2- | rev)
+
+    # echo $folder $file $extension
+
+    # local file_components=$(echo $file | sed -E 's/-(\w+=\w+)/ \1/g')
+
+    read -A file_components <<< "$(echo $file | sed -E 's/-(\w+=\w+)/ \1/g')"
+
+    # items="${file_components[@]:1}"
+    
+    # echo $items
+
+    permutations=$(_smash_permute "${file_components[@]:1}")
+
+    read -A permutations_array <<< "$permutations"
+
+    for permutation in ${permutations_array[@]:1}; do
+        # echo "$folder${file_components[@]:0:1}-$(echo $permutation | sed 's/|/-/g').$extension"
+        ln $_path "$folder${file_components[@]:0:1}-$(echo $permutation | sed 's/|/-/g').$extension"
+    done
+
+    # for component in ${file_components[@]}; do
+    #     echo $component
+    # done
+
+    # echo $file_components
+}
+
 smasha () {
     local _path="$1"
 
@@ -66,8 +161,10 @@ smasha () {
     read -A names_array <<< $names
 
     for name in ${names_array[@]}; do
-        _name="${name:1}"
+        _name="${name:1}" # discard the first character which should be underscore
         mv $name $_name
+
+        smashp "$_name"
 
         echo $_name
         echo

@@ -15,9 +15,17 @@ smasha bar.sh 'sudo apt-get install'
 There are 4 separate functions supported:
 
 1. smash - expand references to the scripts in the same folder (substitute content from the scripts instead of their name mentions);
-1. smashd - expand references to files located in folders, mentioned in the script (substitude folder names with paths to specific files);
-1. smashc - combine commands with given prefix by merging the lists of arguments and removing duplicates;
-1. smasha - execute all operations listed above for the script located at given path.
+2. smashd - expand references to files located in folders, mentioned in the script (substitude folder names with paths to specific files);
+3. smashc - combine commands with given prefix by merging the lists of arguments and removing duplicates;
+4. smashp - generate links to the source file by making all possible permutations of the parameter-value pairs in the filename, for example, if filename `foo/bar/baz/qux-quux-foo=bar-hex=nex-one=two.quuz` is passed as input, the command generates following links:
+```sh
+foo/bar/baz/qux-quux-foo=bar-one=two-hex=nex.quuz
+foo/bar/baz/qux-quux-hex=nex-foo=bar-one=two.quuz
+foo/bar/baz/qux-quux-hex=nex-one=two-foo=bar.quuz
+foo/bar/baz/qux-quux-one=two-foo=bar-hex=nex.quuz
+foo/bar/baz/qux-quux-one=two-hex=nex-foo=bar.quuz
+```
+5. smasha - execute all operations listed above for the script located at given path.
 
 ## Installation
 
